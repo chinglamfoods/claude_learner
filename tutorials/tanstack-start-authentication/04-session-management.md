@@ -1,121 +1,21 @@
 # 04：Session 管理
 
-> 學習如何使用 TanStack Start 內建的 session 管理機制，搭配 HTTP-only cookie 來設定安全的 session。
-
-## 什麼是 Session？
-
-**Session**（工作階段）是伺服器用來在多次請求之間「記住」使用者身份的機制。流程如下：
-
-1. 使用者成功登入
-2. 伺服器建立一個 session，並將它儲存在 **HTTP-only cookie** 中
-3. 瀏覽器在後續的每一次請求中自動附帶這個 cookie
-4. 伺服器讀取 cookie 來辨識使用者身份
-
-可以把它想像成遊樂園的手環——進場時（登入）在入口處領到手環後，就可以自由進出園區內的各個設施（頁面），不用每次都重新出示門票。
+> 使用 TanStack Start 的 `useSession` API 實作加密 cookie-based session，涵蓋安全設定、secret rotation 以及水平擴展下的 session 策略。
 
 ## 使用 `useSession` 設定 Session
 
-TanStack Start 提供了一個 `useSession` 函式，來自 `@tanstack/react-start/server`。以下是設定方式：
+TanStack Start 透過 `@tanstack/react-start/server` 提供的 `useSession` 函式，以加密 cookie 實現 session 管理。以下是標準的封裝方式：
 
 ```tsx
 // utils/session.ts
 import { useSession } from '@tanstack/react-start/server'
 
-// 定義 session 資料的型別
 type SessionData = {
   userId?: string
   email?: string
   role?: string
 }
 
-// 建立一個可重複使用的函式來存取 session
-export function useAppSession() {
-  return useSession<SessionData>({
-    // cookie 的名稱
-    name: 'app-session',
-
-    // 用來加密 cookie 的密鑰（至少 32 個字元！）
-    password: process.env.SESSION_SECRET!,
-
-    // Cookie 安全性設定
-    cookie: {
-      secure: process.env.NODE_ENV === 'production', // 正式環境僅允許 HTTPS
-      sameSite: 'lax',    // 防範 CSRF 攻擊
-      httpOnly: true,      // JavaScript 無法讀取（防範 XSS 攻擊）
-    },
-  })
-}
-```
-
-讓我們逐一說明每個設定：
-
-### `name`
-儲存在瀏覽器中的 cookie 名稱。你可以自由命名——`'app-session'` 是常見的選擇。
-
-### `password`
-一組用來**加密** session 資料的密鑰字串。這確保即使 cookie 儲存在瀏覽器中，其內容也無法被讀取或竄改。
-
-> **重要：**密鑰長度必須至少 32 個字元。請將它存放在環境變數中，千萬不要直接寫在程式碼裡！
-
-範例 `.env` 檔案：
-```
-SESSION_SECRET=at-least-32-characters-long-random-string-here
-```
-
-### `cookie` 選項
-
-| 選項 | 說明 |
-|------|------|
-| `secure: true` | Cookie 僅透過 HTTPS 傳送（正式環境設為 `true`） |
-| `sameSite: 'lax'` | 瀏覽器僅在同站請求與頂層導覽時傳送 cookie——防範 CSRF 攻擊 |
-| `httpOnly: true` | JavaScript 無法存取 cookie（`document.cookie`）——防範 XSS 攻擊 |
-
-## 讀取 Session 資料
-
-一旦 session 存在，你可以在任何伺服器函式中讀取它：
-
-```tsx
-const session = await useAppSession()
-
-// 存取 session 資料
-const userId = session.data.userId    // string | undefined
-const email = session.data.email      // string | undefined
-const role = session.data.role        // string | undefined
-```
-
-## 寫入 Session 資料
-
-要將資料存入 session（例如登入後）：
-
-```tsx
-const session = await useAppSession()
-
-// 將使用者資訊寫入 session
-await session.update({
-  userId: user.id,
-  email: user.email,
-  role: user.role,
-})
-```
-
-`update` 方法會用你提供的資料取代現有的 session 內容。加密後的 cookie 會自動回傳給瀏覽器。
-
-## 清除 Session
-
-要讓使用者登出，請清除 session：
-
-```tsx
-const session = await useAppSession()
-await session.clear()
-```
-
-這會移除所有 session 資料，等同於將使用者登出。
-
-## Session 過期時間
-
-你可以透過 `maxAge` 來控制 session 的有效期間：
-
-```tsx
 export function useAppSession() {
   return useSession<SessionData>({
     name: 'app-session',
@@ -124,17 +24,78 @@ export function useAppSession() {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60, // 7 天（以秒為單位）
+      maxAge: 7 * 24 * 60 * 60, // 7 天
     },
   })
 }
 ```
 
-如果未設定 `maxAge`，cookie 將會是一個 **session cookie**——當使用者關閉瀏覽器時就會被刪除。
+### 設定項說明
 
-## 完整範例：Session 實際運作
+**`name`** — cookie 名稱。避免使用預設值或容易猜測的名稱（如 `session`），以降低 targeted attack 的風險。
 
-以下展示從登入到存取受保護頁面的完整流程：
+**`password`** — 用於加密 cookie 內容的 secret。長度必須至少 32 個字元，務必透過環境變數注入：
+
+```
+SESSION_SECRET=at-least-32-characters-long-random-string-here
+```
+
+> **Session secret rotation：** 在正式環境中，定期輪換 secret 是必要的。`useSession` 的 `password` 參數接受陣列格式——將新 secret 放在第一個位置，舊 secret 保留在後方。框架會嘗試以陣列中的每個 secret 依序解密，但新 session 一律使用第一個 secret 加密。這確保了 rotation 期間既有 session 不會立即失效：
+>
+> ```tsx
+> password: [
+>   process.env.SESSION_SECRET_CURRENT!,
+>   process.env.SESSION_SECRET_PREVIOUS!,
+> ]
+> ```
+
+**`cookie` 選項：**
+
+| 選項 | 說明 |
+|------|------|
+| `secure: true` | 僅允許透過 HTTPS 傳送。正式環境必須啟用 |
+| `sameSite: 'lax'` | 允許同站請求與頂層導覽攜帶 cookie，阻擋跨站 POST——有效緩解 CSRF |
+| `httpOnly: true` | 禁止 `document.cookie` 存取，防止 XSS 竊取 session |
+| `maxAge` | Cookie 存活時間（秒）。未設定時為 session cookie，瀏覽器關閉即失效 |
+
+## 讀取 Session 資料
+
+在任何 server function 中取得 session：
+
+```tsx
+const session = await useAppSession()
+
+const userId = session.data.userId    // string | undefined
+const email = session.data.email      // string | undefined
+const role = session.data.role        // string | undefined
+```
+
+## 寫入 Session 資料
+
+`session.update()` 以提供的物件**完整覆寫**現有 session 內容，加密後的 cookie 會自動附帶在 response 中：
+
+```tsx
+const session = await useAppSession()
+
+await session.update({
+  userId: user.id,
+  email: user.email,
+  role: user.role,
+})
+```
+
+> **注意事項：Session fixation 防護。** 在使用者驗證成功後寫入 session 時，應確保先清除原有 session 再建立新的。這可防止攻擊者預先植入 session ID、等待受害者登入後劫持該 session。實務做法是在 login handler 中先呼叫 `session.clear()` 再執行 `session.update()`。
+
+## 清除 Session
+
+```tsx
+const session = await useAppSession()
+await session.clear()
+```
+
+這會移除所有 session 資料並使 cookie 失效。
+
+## 完整範例：登入、驗證、登出
 
 ```tsx
 // server/auth.ts
@@ -142,7 +103,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { redirect } from '@tanstack/react-router'
 import { useAppSession } from '../utils/session'
 
-// 登入：建立 session
+// 登入
 export const loginFn = createServerFn({ method: 'POST' })
   .inputValidator((data: { email: string; password: string }) => data)
   .handler(async ({ data }) => {
@@ -150,12 +111,14 @@ export const loginFn = createServerFn({ method: 'POST' })
     if (!user) return { error: 'Invalid credentials' }
 
     const session = await useAppSession()
-    await session.update({ userId: user.id, email: user.email })
+    // 先清除再寫入，防止 session fixation
+    await session.clear()
+    await session.update({ userId: user.id, email: user.email, role: user.role })
 
     throw redirect({ to: '/dashboard' })
   })
 
-// 驗證身份：讀取 session
+// 驗證身份
 export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(
   async () => {
     const session = await useAppSession()
@@ -164,7 +127,7 @@ export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(
   }
 )
 
-// 登出：清除 session
+// 登出
 export const logoutFn = createServerFn({ method: 'POST' }).handler(
   async () => {
     const session = await useAppSession()
@@ -174,14 +137,47 @@ export const logoutFn = createServerFn({ method: 'POST' }).handler(
 )
 ```
 
+## 注意事項與 Edge Cases
+
+### Cookie 大小限制
+
+瀏覽器對每個 cookie 的大小限制約為 **4KB**。由於 `useSession` 將 session 資料加密後直接存入 cookie（而非僅存 session ID），payload 過大會導致 cookie 被靜默截斷或被瀏覽器拒絕。應遵循以下原則：
+
+- Session 中僅存放識別資訊（`userId`、`role`）
+- 避免將完整 user profile、permission list 或其他大型結構塞入 session
+- 需要的資料應在 server function 中透過 `userId` 從資料庫查詢
+
+### 並行 Session 更新（Concurrent Updates）
+
+Cookie-based session 的本質是 last-write-wins。若同一使用者在多個 tab 或並行請求中同時觸發 `session.update()`，後寫入的 response cookie 會覆蓋先前的值。對於需要原子性更新的場景（例如 session 中的計數器），應將該狀態移至資料庫層級管理。
+
+### 水平擴展與 Session 儲存後端
+
+TanStack Start 預設的 cookie-based session 是 stateless 的——session 資料完整存放在 cookie 中，伺服器端不需要共享狀態。這在多伺服器部署下天然支援水平擴展，無需額外的 session store。
+
+但當需求超出 cookie-based 方案的限制時（例如需要伺服器端 session 撤銷、超過 4KB 的 session 資料、或即時 session 失效），應考慮切換至 server-side session store：
+
+- **Redis** 是最常見的選擇——低延遲、支援 TTL 自動過期、叢集模式下可水平擴展
+- **資料庫（PostgreSQL / MySQL）** 適用於已有 DB infra 且 session 吞吐量不高的場景
+- 此時 cookie 僅存放 session ID，實際資料存於後端
+
+### Session 失效模式（Invalidation Patterns）
+
+Cookie-based session 的限制之一是無法從伺服器端主動撤銷——cookie 由瀏覽器持有，伺服器只能在下次收到該 cookie 時拒絕它。常見的解決方案：
+
+- **資料庫層級的 revocation list：** 在 DB 中維護已撤銷的 session 或 user 記錄，每次驗證 session 時進行比對
+- **短 `maxAge` 搭配 refresh 機制：** 縮短 cookie 有效期（例如 15 分鐘），搭配前端自動 refresh，在 refresh 時檢查是否該 session 應被撤銷
+- **Server-side session store：** 如上述，直接在 Redis / DB 中刪除 session record 即可立即失效
+
 ## 重點整理
 
-- Session 讓伺服器能在多次請求之間記住使用者身份
-- TanStack Start 使用加密的 HTTP-only cookie——預設就是安全的
-- `useSession`（來自 `@tanstack/react-start/server`）是核心 API
-- `SESSION_SECRET` 務必存放在環境變數中（至少 32 個字元）
-- 使用 `session.update()` 寫入資料、`session.data` 讀取資料、`session.clear()` 登出
-- 正確設定 `cookie` 選項（`secure`、`sameSite`、`httpOnly`）以確保安全性
+- `useSession`（`@tanstack/react-start/server`）以加密 cookie 實現 stateless session
+- `SESSION_SECRET` 存放於環境變數，正式環境應定期 rotate（password 支援陣列格式）
+- Cookie 選項 `secure`、`sameSite: 'lax'`、`httpOnly` 三者缺一不可
+- 登入時先 `clear()` 再 `update()` 以防止 session fixation
+- Session 中僅存放最小必要資料——cookie 大小限制約 4KB
+- 並行更新場景下 cookie-based session 採 last-write-wins 語意
+- 需要伺服器端撤銷或大型 session 時，應改用 Redis / DB-backed session store
 
 ---
 

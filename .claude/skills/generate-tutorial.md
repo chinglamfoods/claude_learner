@@ -1,13 +1,13 @@
 ---
 name: generate-tutorial
-description: Generate a step-by-step tutorial from a documentation web page. Use when the user wants to learn about a topic by creating beginner-friendly tutorial markdown files from a URL.
+description: Generate a structured tutorial from a documentation web page. Use when the user wants to create professional-level tutorial markdown files from a URL.
 ---
 
 # Generate Tutorial from Documentation Page
 
 ## Overview
 
-This skill reads a documentation web page and produces a multi-file, beginner-friendly tutorial broken into logical steps.
+This skill reads a documentation web page and produces a multi-file, professional-level tutorial broken into logical steps. The target audience is working developers who know the basics — no hand-holding, no filler.
 
 ## Language Requirement
 
@@ -32,13 +32,14 @@ The user provides a URL to a documentation page and optionally a topic slug for 
 2. **分析結構**: Identify the major sections and subsections of the page. Map out the logical flow of the content.
 
 3. **規劃教學檔案**: Break the content into numbered tutorial files, one per logical section:
-   - `01-introduction.md` — Always first. Covers: what it is, what it can do, prerequisites.
+   - `01-introduction.md` — Always first. Covers: what it does, architecture overview, prerequisites.
    - `02-xxx.md` through `NN-xxx.md` — One file per major section, named descriptively.
 
 4. **撰寫每個檔案** with these elements:
-   - Clear title and brief description in Traditional Chinese
-   - Beginner-friendly explanations in Traditional Chinese (assume the reader is new to the topic)
-   - Code examples with inline comments in Traditional Chinese explaining what each part does
+   - Clear title and concise description in Traditional Chinese
+   - Direct, technical explanations — skip obvious basics, focus on how things work and why
+   - Production-quality code examples with inline comments in Traditional Chinese highlighting non-obvious details
+   - Edge cases, gotchas, and real-world considerations where relevant
    - 「重點整理」section at the end of each file
    - Link to the next file in the sequence
 
@@ -68,8 +69,9 @@ Each file should follow this general structure:
 
 ## Guidelines
 
-- 以初學者為目標讀者撰寫 — 解釋專業術語，不要假設讀者已經了解該框架
-- Include all code examples from the source, with added comments in Traditional Chinese for clarity
+- 以有經驗的開發者為目標讀者 — 不需要解釋基礎概念，直接進入核心內容
+- Code examples should be production-relevant with real-world patterns, not toy examples
 - 每個教學檔案聚焦於一個概念或章節
-- 使用實際、貼近真實情境的說明方式（例如：「這個功能的實際用途是……」）
+- 涵蓋 edge cases、常見陷阱、以及實務上需要注意的細節
+- 使用精簡、直接的語句 — 不要鋪陳、不要「首先讓我們了解什麼是 X」之類的開場
 - 在介紹檔案中保留原始文件的來源 URL 作為參考
