@@ -1,74 +1,74 @@
-# 01: Introduction to Authentication in TanStack Start
+# 01：TanStack Start 認證功能介紹
 
-> A beginner-friendly overview of what TanStack Start offers for authentication, what you can build with it, and what you need to get started.
+> 一份適合初學者的概覽，介紹 TanStack Start 在認證方面提供了哪些功能、你可以用它打造什麼，以及開始前需要準備的事項。
 
-## What is TanStack Start?
+## 什麼是 TanStack Start？
 
-TanStack Start is a full-stack React framework built on top of TanStack Router. It gives you server-side rendering (SSR), server functions, and a powerful routing system — all with end-to-end type safety.
+TanStack Start 是一個建立在 TanStack Router 之上的全端 React 框架。它提供伺服器端渲染（SSR）、伺服器函式（server functions），以及強大的路由系統——全部具備端對端的型別安全。
 
-When it comes to **authentication** (verifying who a user is) and **authorization** (controlling what they can do), TanStack Start provides the building blocks you need to implement secure, production-ready auth systems.
+在**認證**（authentication，驗證使用者的身分）和**授權**（authorization，控制使用者可以執行的操作）方面，TanStack Start 提供了實作安全、可上線的認證系統所需的基礎元件。
 
-## What Can You Build?
+## 你可以打造什麼？
 
-With TanStack Start's authentication tools, you can:
+使用 TanStack Start 的認證工具，你可以：
 
-- **Email/password login systems** — traditional sign-up and sign-in flows
-- **Social logins** — "Sign in with Google/GitHub" via OAuth
-- **Role-based access control (RBAC)** — restrict pages and actions based on user roles (admin, moderator, user)
-- **Protected routes** — pages that require login to access
-- **Session management** — secure cookie-based sessions that persist across requests
-- **Password reset flows** — secure token-based password recovery
+- **電子郵件／密碼登入系統** — 傳統的註冊與登入流程
+- **社群登入** — 透過 OAuth 實現「使用 Google／GitHub 登入」
+- **角色型存取控制（RBAC）** — 根據使用者角色（管理員、版主、一般使用者）限制頁面與操作
+- **受保護的路由** — 需要登入才能存取的頁面
+- **Session 管理** — 安全的、基於 cookie 的 session，可在多次請求之間保持狀態
+- **密碼重設流程** — 安全的、基於 token 的密碼復原機制
 
-You can also integrate with third-party authentication providers like Clerk, WorkOS, Auth.js, Better Auth, or Supabase Auth instead of building everything from scratch.
+你也可以整合第三方認證供應商，例如 Clerk、WorkOS、Auth.js、Better Auth 或 Supabase Auth，而不必從零開始自己建構。
 
-## Authentication Approaches
+## 認證方式
 
-TanStack Start supports several approaches:
+TanStack Start 支援多種方式：
 
-| Approach | Best For | Trade-off |
-|----------|----------|-----------|
-| **DIY (build your own)** | Full control, custom requirements | More work, you handle security |
-| **Partner solutions (Clerk, WorkOS)** | Enterprise features, fast setup | Vendor dependency, per-user pricing |
-| **OSS libraries (Better Auth, Auth.js)** | Community-driven, self-hosted | Less support than hosted options |
-| **Hosted services (Supabase, Auth0, Firebase)** | Managed infrastructure | Less customization |
+| 方式 | 最適合場景 | 取捨 |
+|------|-----------|------|
+| **自行建構（DIY）** | 完全掌控、客製化需求 | 工作量較大，需自行處理安全性 |
+| **合作夥伴方案（Clerk、WorkOS）** | 企業級功能、快速建置 | 廠商綁定、按使用者計費 |
+| **開源函式庫（Better Auth、Auth.js）** | 社群驅動、可自行部署 | 支援不如託管方案完善 |
+| **託管服務（Supabase、Auth0、Firebase）** | 代管基礎設施 | 客製化程度較低 |
 
-## Prerequisites
+## 先備條件
 
-Before starting this tutorial, you should have:
+在開始本教學之前，你應該具備：
 
-- **Basic React knowledge** — components, hooks, JSX
-- **Node.js installed** (v18 or later recommended)
-- **A TanStack Start project** — follow the [Quick Start guide](https://tanstack.com/start/latest/docs/framework/react/quick-start) if you don't have one yet
-- **Basic understanding of HTTP** — requests, responses, cookies (helpful but not required)
+- **基本的 React 知識** — 元件、hooks、JSX
+- **已安裝 Node.js**（建議 v18 或更新版本）
+- **一個 TanStack Start 專案** — 如果還沒有，請參考 [Quick Start 指南](https://tanstack.com/start/latest/docs/framework/react/quick-start)
+- **基本了解 HTTP** — 請求、回應、cookie（有幫助但非必要）
 
-## What This Tutorial Covers
+## 本教學涵蓋的內容
 
-This tutorial walks through the TanStack Start authentication documentation step by step:
+本教學將逐步帶你瀏覽 TanStack Start 認證文件：
 
-1. **Introduction** (this file) — overview and prerequisites
-2. **Core Concepts** — authentication vs. authorization and the architecture model
-3. **Server Functions** — handling auth logic securely on the server
-4. **Session Management** — setting up secure cookie-based sessions
-5. **Authentication Context** — sharing auth state across your React app
-6. **Route Protection** — blocking unauthorized access to pages
-7. **Implementation Patterns** — email/password, RBAC, OAuth, password reset
-8. **Security Best Practices** — password hashing, rate limiting, input validation
-9. **Testing Authentication** — unit and integration tests
-10. **Common Patterns and Production** — loading states, remember me, migration tips
+1. **介紹**（本篇）— 概覽與先備條件
+2. **核心概念** — 認證 vs. 授權，以及架構模型
+3. **伺服器函式** — 在伺服器端安全地處理認證邏輯
+4. **Session 管理** — 設定安全的、基於 cookie 的 session
+5. **認證 Context** — 在整個 React 應用程式中共享認證狀態
+6. **路由保護** — 阻止未經授權的存取
+7. **實作模式** — 電子郵件／密碼、RBAC、OAuth、密碼重設
+8. **安全性最佳實務** — 密碼雜湊、速率限制、輸入驗證
+9. **測試認證功能** — 單元測試與整合測試
+10. **常見模式與正式上線** — 載入狀態、記住我、遷移建議
 
-## Source Reference
+## 來源參考
 
-This tutorial is based on the official TanStack Start documentation:
+本教學基於 TanStack Start 官方文件：
 - [Authentication Overview](https://tanstack.com/start/latest/docs/framework/react/guide/authentication-overview)
 - [Authentication Guide](https://tanstack.com/start/latest/docs/framework/react/guide/authentication)
 
-## Key Takeaways
+## 重點整理
 
-- TanStack Start is a full-stack React framework with built-in tools for authentication
-- You can build your own auth system or integrate with third-party providers
-- The framework provides server functions, sessions, and route protection as core building blocks
-- This tutorial will walk you through each of these concepts step by step
+- TanStack Start 是一個全端 React 框架，內建認證所需的工具
+- 你可以自行建構認證系統，也可以整合第三方供應商
+- 此框架以伺服器函式、session 及路由保護作為核心基礎元件
+- 本教學將逐步帶你了解每一個概念
 
 ---
 
-Next: [Core Concepts](./02-core-concepts.md)
+下一篇：[核心概念](./02-core-concepts.md)

@@ -1,125 +1,125 @@
-# 02: Core Concepts
+# 02：核心概念
 
-> Understand the difference between authentication and authorization, and learn the architecture behind TanStack Start's auth model.
+> 了解認證（Authentication）與授權（Authorization）之間的差異，並學習 TanStack Start 認證模型背後的架構設計。
 
-## Authentication vs. Authorization
+## 認證 vs. 授權
 
-These two terms come up constantly in web development, so let's be clear about what each means:
+這兩個術語在網頁開發中不斷出現，讓我們先釐清它們各自的意思：
 
-- **Authentication** answers: *"Who is this user?"*
-  - Logging in and logging out
-  - Verifying identity (email/password, social login, etc.)
+- **認證（Authentication）** 回答的是：*「這個使用者是誰？」*
+  - 登入與登出
+  - 驗證身分（電子郵件／密碼、社群登入等）
 
-- **Authorization** answers: *"What can this user do?"*
-  - Permissions and roles (admin, editor, viewer)
-  - Access control to specific pages or actions
+- **授權（Authorization）** 回答的是：*「這個使用者可以做什麼？」*
+  - 權限與角色（管理員、編輯者、檢視者）
+  - 對特定頁面或操作的存取控制
 
-TanStack Start provides tools for **both** through server functions, sessions, and route protection. You'll typically implement authentication first, then layer authorization on top.
+TanStack Start 透過 server functions、sessions 以及路由保護，同時提供**兩者**的工具。你通常會先實作認證，然後再在其上加入授權邏輯。
 
-## Full-Stack Architecture Model
+## 全端架構模型
 
-TanStack Start uses a full-stack architecture where authentication logic is split across three layers:
+TanStack Start 使用全端架構，將認證邏輯分為三個層級：
 
-### Server-Side (Secure)
+### 伺服器端（安全）
 
-This is where sensitive operations happen. The server is the **only** place you should:
+這是處理敏感操作的地方。伺服器是**唯一**應該進行以下操作的位置：
 
-- Store and validate sessions
-- Verify user credentials (passwords, tokens)
-- Perform database operations (look up users, save sessions)
-- Generate and verify tokens
-- Run protected API endpoints
+- 儲存與驗證 sessions
+- 驗證使用者憑證（密碼、tokens）
+- 執行資料庫操作（查詢使用者、儲存 sessions）
+- 產生與驗證 tokens
+- 執行受保護的 API 端點
 
-> **Why server-only?** Because client-side code is visible to anyone using browser DevTools. Passwords, database queries, and secret keys must never run in the browser.
+> **為什麼只在伺服器端？** 因為用戶端的程式碼任何人都可以透過瀏覽器開發者工具看到。密碼、資料庫查詢以及密鑰絕對不能在瀏覽器中執行。
 
-### Client-Side (Public)
+### 用戶端（公開）
 
-The client (browser) handles the user-facing parts:
+用戶端（瀏覽器）負責處理面向使用者的部分：
 
-- Managing authentication state in React (logged in or not)
-- Showing/hiding UI based on auth status
-- Login and logout forms
-- Redirecting users to the right pages
+- 在 React 中管理認證狀態（是否已登入）
+- 根據認證狀態顯示或隱藏 UI
+- 登入與登出表單
+- 將使用者重新導向至正確的頁面
 
-### Isomorphic (Both)
+### 同構（兩端皆執行）
 
-Some code runs on both the server and client:
+有些程式碼會在伺服器端和用戶端同時執行：
 
-- Route loaders that check auth state (these run server-side during SSR, and may re-run client-side during navigation)
-- Shared validation logic
-- User profile data access
+- 檢查認證狀態的路由 loaders（在 SSR 期間於伺服器端執行，在導航時可能會在用戶端重新執行）
+- 共用的驗證邏輯
+- 使用者個人資料的資料存取
 
-## Session Management Patterns
+## Session 管理模式
 
-There are several ways to manage user sessions. Here's a comparison:
+管理使用者 sessions 有幾種方式，以下是比較：
 
-### HTTP-Only Cookies (Recommended)
+### HTTP-Only Cookies（建議採用）
 
 ```
-Browser sends cookie automatically with every request
+瀏覽器在每次請求時自動送出 cookie
     ↓
-Server reads cookie → validates session → returns response
+伺服器讀取 cookie → 驗證 session → 回傳回應
 ```
 
-- **Most secure** — cookies with `httpOnly: true` can't be read by JavaScript (protects against XSS attacks)
-- **Automatic** — the browser handles sending cookies with every request
-- **Built-in CSRF protection** with the `sameSite` attribute
-- **Best for** traditional web applications (which is most apps!)
+- **最安全** — 設定 `httpOnly: true` 的 cookies 無法被 JavaScript 讀取（可防範 XSS 攻擊）
+- **自動化** — 瀏覽器會自動在每次請求中附帶 cookies
+- **內建 CSRF 防護** — 透過 `sameSite` 屬性實現
+- **最適合** 傳統網頁應用程式（大多數應用程式都屬於此類！）
 
-TanStack Start uses this approach by default.
+TanStack Start 預設採用此方式。
 
 ### JWT Tokens
 
-- Stateless — the token contains the user's info, no server-side storage needed
-- Good for API-first applications
-- **Caution:** storing JWTs in localStorage is vulnerable to XSS attacks
-- Consider refresh token rotation for better security
+- 無狀態 — token 本身包含使用者資訊，不需要伺服器端的儲存
+- 適合 API 優先的應用程式
+- **注意：** 將 JWT 儲存在 localStorage 中容易受到 XSS 攻擊
+- 建議使用 refresh token 輪換機制以提升安全性
 
-### Server-Side Sessions
+### 伺服器端 Sessions
 
-- Session data stored in a database or Redis
-- Easy to revoke (just delete the session record)
-- Requires a session store
-- Good when you need to immediately invalidate sessions (e.g., "log out all devices")
+- Session 資料儲存在資料庫或 Redis 中
+- 容易撤銷（直接刪除 session 記錄即可）
+- 需要一個 session store
+- 適合需要立即使 sessions 失效的場景（例如「登出所有裝置」）
 
-## Route Protection Architecture
+## 路由保護架構
 
-TanStack Start offers several patterns for protecting routes:
+TanStack Start 提供多種保護路由的模式：
 
-### Layout Route Pattern (Recommended)
+### Layout Route 模式（建議採用）
 
-Protect entire groups of pages by wrapping them in a **layout route** that checks authentication:
+透過將頁面群組包裹在一個會檢查認證狀態的 **layout route** 中，來保護整組頁面：
 
 ```
 routes/
-  _authed.tsx          ← checks if user is logged in
+  _authed.tsx          ← 檢查使用者是否已登入
   _authed/
-    dashboard.tsx      ← protected (child of _authed)
-    settings.tsx       ← protected (child of _authed)
+    dashboard.tsx      ← 受保護（_authed 的子路由）
+    settings.tsx       ← 受保護（_authed 的子路由）
     admin/
-      index.tsx        ← protected (child of _authed)
-  login.tsx            ← public
-  index.tsx            ← public
+      index.tsx        ← 受保護（_authed 的子路由）
+  login.tsx            ← 公開
+  index.tsx            ← 公開
 ```
 
-Any route inside `_authed/` automatically requires authentication because the parent layout checks it first.
+任何在 `_authed/` 內的路由都會自動要求認證，因為父層的 layout 會先進行檢查。
 
-### Component-Level Protection
+### 元件層級保護
 
-Show or hide parts of a page based on auth status. Useful when a single page has both public and private content.
+根據認證狀態顯示或隱藏頁面的部分內容。適用於單一頁面同時包含公開與私有內容的情境。
 
 ### Server Function Guards
 
-Validate authentication on the server before executing sensitive operations. This is essential even if you have route-level protection — always verify on the server.
+在執行敏感操作之前，先在伺服器端驗證認證狀態。即使你已經有路由層級的保護，這仍然是必要的 — 務必在伺服器端進行驗證。
 
-## Key Takeaways
+## 重點整理
 
-- **Authentication** = who is the user; **Authorization** = what can they do
-- Sensitive logic (passwords, sessions, DB queries) belongs on the **server only**
-- HTTP-only cookies are the recommended session management approach
-- Layout routes are the cleanest way to protect groups of pages
-- Always validate auth on the server, even if the client also checks
+- **認證** = 使用者是誰；**授權** = 使用者可以做什麼
+- 敏感邏輯（密碼、sessions、資料庫查詢）只能放在**伺服器端**
+- HTTP-only cookies 是建議採用的 session 管理方式
+- Layout routes 是保護頁面群組最簡潔的方式
+- 即使用戶端也有檢查，仍然務必在伺服器端驗證認證狀態
 
 ---
 
-Next: [Server Functions for Authentication](./03-server-functions.md)
+下一篇：[Server Functions 與認證](./03-server-functions.md)

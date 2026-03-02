@@ -1,12 +1,12 @@
-# 10: Common Patterns and Production Considerations
+# 10：常見模式與正式環境注意事項
 
-> Loading states, "Remember Me" functionality, migration tips, and production readiness checklist.
+> 載入狀態、「記住我」功能、遷移建議，以及正式環境準備清單。
 
-## Loading States
+## 載入狀態
 
-Users need feedback while authentication operations are in progress. Without loading states, the UI feels broken.
+使用者在驗證操作進行時需要回饋。如果沒有載入狀態，介面會讓人覺得壞掉了。
 
-### Login Form with Loading State
+### 帶有載入狀態的登入表單
 
 ```tsx
 function LoginForm() {
@@ -18,9 +18,9 @@ function LoginForm() {
     try {
       await loginMutation.mutate(data)
     } catch (error) {
-      // Handle error (show message to user)
+      // 處理錯誤（向使用者顯示訊息）
     } finally {
-      // Always reset loading state, even on error
+      // 無論成功或失敗，都要重設載入狀態
       setIsLoading(false)
     }
   }
@@ -45,14 +45,14 @@ function LoginForm() {
 }
 ```
 
-**Best practices for loading states:**
-- Disable form inputs and the submit button while loading
-- Show a clear indicator (text change, spinner, etc.)
-- Always reset loading state in `finally` (handles both success and error)
+**載入狀態的最佳實踐：**
+- 載入時停用表單輸入欄位和送出按鈕
+- 顯示明確的指示（文字變化、旋轉圖示等）
+- 一律在 `finally` 中重設載入狀態（同時處理成功與錯誤情況）
 
-## Remember Me Functionality
+## 「記住我」功能
 
-"Remember Me" extends the session duration so users don't have to log in as frequently.
+「記住我」功能會延長 session 的有效時間，讓使用者不必頻繁重新登入。
 
 ```tsx
 export const loginFn = createServerFn({ method: 'POST' })
@@ -67,8 +67,8 @@ export const loginFn = createServerFn({ method: 'POST' })
     await session.update(
       { userId: user.id },
       {
-        // If "Remember Me" is checked: 30 days
-        // If not: session cookie (deleted when browser closes)
+        // 如果勾選「記住我」：30 天
+        // 如果沒有勾選：session cookie（瀏覽器關閉時刪除）
         maxAge: data.rememberMe ? 30 * 24 * 60 * 60 : undefined,
       },
     )
@@ -77,107 +77,107 @@ export const loginFn = createServerFn({ method: 'POST' })
   })
 ```
 
-### On the Login Form
+### 登入表單上的呈現
 
 ```tsx
 <label>
   <input type="checkbox" name="rememberMe" />
-  Remember me for 30 days
+  記住我 30 天
 </label>
 ```
 
-## Migration from Other Solutions
+## 從其他方案遷移
 
-### From Client-Side Auth (localStorage, Context-only)
+### 從用戶端驗證遷移（localStorage、僅 Context）
 
-If you're currently storing auth state in `localStorage` or React Context without server-side validation:
+如果你目前將驗證狀態存放在 `localStorage` 或 React Context 中，而沒有伺服器端驗證：
 
-1. **Move auth logic to server functions** — credential verification, token generation
-2. **Replace localStorage with server sessions** — HTTP-only cookies are more secure
-3. **Update route protection to use `beforeLoad`** — instead of client-side redirect logic
-4. **Add CSRF protection** — `sameSite: 'lax'` cookies handle this
+1. **將驗證邏輯移至 server function** — 憑證驗證、token 產生
+2. **用伺服器 session 取代 localStorage** — HTTP-only cookie 更安全
+3. **將路由保護改為使用 `beforeLoad`** — 取代用戶端重新導向邏輯
+4. **加入 CSRF 防護** — 設定 `sameSite: 'lax'` 的 cookie 可以處理這個問題
 
-### From Next.js
+### 從 Next.js 遷移
 
-- Replace **API routes** with TanStack Start's **server functions**
-- Migrate **NextAuth.js sessions** to TanStack Start's `useSession`
-- Update **middleware-based** route protection to `beforeLoad`
+- 將 **API routes** 替換為 TanStack Start 的 **server function**
+- 將 **NextAuth.js session** 遷移至 TanStack Start 的 `useSession`
+- 將基於 **middleware** 的路由保護改為 `beforeLoad`
 
-### From Remix
+### 從 Remix 遷移
 
-- Convert **loaders and actions** to server functions
-- Adapt **session patterns** (Remix sessions → TanStack Start sessions)
-- Update **route protection** patterns
+- 將 **loader 和 action** 轉換為 server function
+- 調整 **session 模式**（Remix session → TanStack Start session）
+- 更新**路由保護**模式
 
-## Hosted vs. DIY Decision Guide
+## 託管服務 vs. 自建方案決策指南
 
-Choosing between building your own auth and using a hosted service:
+在自行建置驗證系統與使用託管服務之間做選擇：
 
-### Choose Hosted (Clerk, WorkOS) When:
+### 選擇託管服務（Clerk、WorkOS）的時機：
 
-- You need **enterprise features** fast (SSO, SCIM, compliance)
-- You want **pre-built UI components** (login forms, user management)
-- You need **managed security updates** and monitoring
-- Your budget allows per-user or subscription pricing
-- You're a small team that can't dedicate time to auth maintenance
+- 你需要快速取得**企業級功能**（SSO、SCIM、合規性）
+- 你想要**預建的 UI 元件**（登入表單、使用者管理）
+- 你需要**託管的安全性更新**和監控
+- 你的預算允許按使用者計費或訂閱制定價
+- 你的團隊規模小，無法投入時間維護驗證系統
 
-### Choose DIY When:
+### 選擇自建方案的時機：
 
-- You need **complete control** over the auth flow and user data
-- You have **custom business logic** requirements
-- You want to **avoid vendor lock-in**
-- You have a team that can maintain and monitor the auth system
-- **Cost control** is important (no per-user pricing)
+- 你需要對驗證流程和使用者資料有**完全的控制權**
+- 你有**自訂商業邏輯**的需求
+- 你想**避免廠商綁定**
+- 你的團隊有能力維護和監控驗證系統
+- **成本控管**很重要（沒有按使用者計費）
 
-## Production Checklist
+## 正式環境檢查清單
 
-Before deploying your authentication system to production, verify:
+在將驗證系統部署到正式環境之前，請確認以下項目：
 
-### Security
-- [ ] Passwords hashed with bcrypt/scrypt/argon2 (12+ salt rounds)
-- [ ] Session secret is 32+ random characters, stored in env variable
-- [ ] Cookies set with `secure: true`, `sameSite: 'lax'`, `httpOnly: true`
-- [ ] HTTPS enabled (non-negotiable for production)
-- [ ] Rate limiting on login endpoints
-- [ ] Input validation on all server functions (use Zod)
-- [ ] Generic error messages (don't reveal if emails exist)
+### 安全性
+- [ ] 密碼使用 bcrypt/scrypt/argon2 雜湊處理（12+ 輪 salt）
+- [ ] Session secret 為 32 個以上的隨機字元，存放在環境變數中
+- [ ] Cookie 設定為 `secure: true`、`sameSite: 'lax'`、`httpOnly: true`
+- [ ] 啟用 HTTPS（正式環境不可妥協）
+- [ ] 對登入端點實施速率限制
+- [ ] 所有 server function 都有輸入驗證（使用 Zod）
+- [ ] 使用通用的錯誤訊息（不要透露 email 是否已存在）
 
-### Functionality
-- [ ] Login, logout, and registration work correctly
-- [ ] Protected routes redirect unauthenticated users
-- [ ] Session persists across page reloads
-- [ ] Session expires after the configured `maxAge`
-- [ ] Password reset flow works end-to-end
+### 功能性
+- [ ] 登入、登出和註冊都能正常運作
+- [ ] 受保護的路由會將未驗證的使用者重新導向
+- [ ] Session 在頁面重新載入後仍然有效
+- [ ] Session 在設定的 `maxAge` 後過期
+- [ ] 密碼重設流程能完整走完
 
-### Monitoring
-- [ ] Log authentication events (login, logout, failed attempts)
-- [ ] Monitor for unusual patterns (many failed logins from one IP)
-- [ ] Set up alerts for auth system errors
+### 監控
+- [ ] 記錄驗證事件（登入、登出、失敗嘗試）
+- [ ] 監控異常模式（來自同一 IP 的大量登入失敗）
+- [ ] 設定驗證系統錯誤的警報
 
-### Compliance
-- [ ] Handle personal data per GDPR/CCPA if applicable
-- [ ] Provide account deletion if required
-- [ ] Document your data retention policies
+### 合規性
+- [ ] 如適用，依照 GDPR/CCPA 處理個人資料
+- [ ] 如有需要，提供帳號刪除功能
+- [ ] 記錄你的資料保留政策
 
-## Working Examples
+## 實作範例
 
-Study these official TanStack examples for reference implementations:
+請參考以下 TanStack 官方範例作為參考實作：
 
-- **[Basic Auth with Prisma](https://github.com/TanStack/router/tree/main/examples/react/start-basic-auth)** — Complete DIY implementation with database and sessions
-- **[Supabase Integration](https://github.com/TanStack/router/tree/main/examples/react/start-supabase-basic)** — Third-party service integration
-- **[Clerk Integration](https://github.com/TanStack/router/tree/main/examples/react/start-clerk-basic)** — Partner solution with pre-built UI
-- **[WorkOS Integration](https://github.com/TanStack/router/tree/main/examples/react/start-workos)** — Enterprise authentication
-- **[Client-side Context Auth](https://github.com/TanStack/router/tree/main/examples/react/authenticated-routes)** — Client-only patterns
+- **[Basic Auth with Prisma](https://github.com/TanStack/router/tree/main/examples/react/start-basic-auth)** — 完整的自建實作，包含資料庫和 session
+- **[Supabase Integration](https://github.com/TanStack/router/tree/main/examples/react/start-supabase-basic)** — 第三方服務整合
+- **[Clerk Integration](https://github.com/TanStack/router/tree/main/examples/react/start-clerk-basic)** — 合作夥伴方案，附帶預建 UI
+- **[WorkOS Integration](https://github.com/TanStack/router/tree/main/examples/react/start-workos)** — 企業級驗證
+- **[Client-side Context Auth](https://github.com/TanStack/router/tree/main/examples/react/authenticated-routes)** — 僅用戶端的模式
 
-## Key Takeaways
+## 重點整理
 
-- Always show loading states during auth operations — disable forms and show feedback
-- "Remember Me" is simply a longer `maxAge` on the session cookie
-- Migrating from other frameworks mainly involves moving logic to server functions
-- Choose hosted auth for speed and enterprise features; DIY for control and cost savings
-- Use the production checklist before deploying — it covers security, functionality, and compliance
-- Study the official examples to see complete, working implementations
+- 驗證操作期間一律顯示載入狀態 — 停用表單並顯示回饋
+- 「記住我」只是將 session cookie 的 `maxAge` 設定得更長
+- 從其他框架遷移主要是將邏輯移至 server function
+- 需要速度和企業功能時選擇託管驗證；需要控制權和節省成本時選擇自建方案
+- 部署前使用正式環境檢查清單 — 涵蓋安全性、功能性和合規性
+- 研究官方範例以了解完整且可運作的實作
 
 ---
 
-This concludes the TanStack Start Authentication tutorial! Go back to the [Introduction](./01-introduction.md) to review the full table of contents.
+本篇是 TanStack Start 驗證教學的最後一章！回到[簡介](./01-introduction.md)以查看完整的目錄。

@@ -1,77 +1,77 @@
-# 06: Route Protection
+# 06：路由保護
 
-> Learn how to protect routes so only authenticated users can access certain pages, using TanStack Router's `beforeLoad` hook.
+> 學習如何保護路由，讓只有已驗證的使用者才能存取特定頁面，使用 TanStack Router 的 `beforeLoad` hook。
 
-## Why Protect Routes?
+## 為什麼需要保護路由？
 
-Without route protection, anyone could navigate to `/dashboard` or `/admin` by typing the URL directly — even if they're not logged in. Route protection ensures that:
+如果沒有路由保護，任何人都可以直接在瀏覽器輸入 `/dashboard` 或 `/admin` 的 URL 來存取頁面——即使他們尚未登入。路由保護能確保：
 
-- Unauthenticated users are redirected to the login page
-- Authenticated users see the content they're allowed to see
-- The check happens **before** the page renders (no flash of unauthorized content)
+- 未驗證的使用者會被導向登入頁面
+- 已驗證的使用者只能看到他們被授權的內容
+- 檢查在頁面渲染**之前**就會執行（不會出現未授權內容的閃爍畫面）
 
-## The Layout Route Pattern
+## Layout Route 模式
 
-The most powerful pattern in TanStack Start is using a **layout route** to protect an entire group of pages at once.
+TanStack Start 中最強大的模式之一，就是使用 **layout route** 來一次保護一整組頁面。
 
-### How It Works
+### 運作原理
 
-In TanStack Router, routes starting with `_` are **layout routes**. They don't add a URL segment — they just wrap their children.
+在 TanStack Router 中，以 `_` 開頭的路由是 **layout route**。它們不會增加 URL 路徑片段——只是用來包裝其子路由。
 
 ```
 routes/
-  _authed.tsx              ← layout route (checks auth)
+  _authed.tsx              ← layout route（檢查驗證狀態）
   _authed/
-    dashboard.tsx          ← /dashboard (protected)
-    settings.tsx           ← /settings (protected)
+    dashboard.tsx          ← /dashboard（受保護）
+    settings.tsx           ← /settings（受保護）
     admin/
-      index.tsx            ← /admin (protected)
-  login.tsx                ← /login (public)
-  index.tsx                ← / (public)
+      index.tsx            ← /admin（受保護）
+  login.tsx                ← /login（公開）
+  index.tsx                ← /（公開）
 ```
 
-Any route inside the `_authed/` folder is automatically protected because `_authed.tsx` runs first.
+任何在 `_authed/` 資料夾內的路由都會自動受到保護，因為 `_authed.tsx` 會先執行。
 
-### The Auth Check: `beforeLoad`
+### 驗證檢查：`beforeLoad`
 
 ```tsx
-// routes/_authed.tsx — Layout route for all protected pages
+// routes/_authed.tsx — 所有受保護頁面的 layout route
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { getCurrentUserFn } from '../server/auth'
 
 export const Route = createFileRoute('/_authed')({
   beforeLoad: async ({ location }) => {
-    // Call the server to check if the user is logged in
+    // 呼叫伺服器檢查使用者是否已登入
     const user = await getCurrentUserFn()
 
     if (!user) {
-      // Not logged in → redirect to login page
-      // Save the current URL so we can redirect back after login
+      // 未登入 → 導向登入頁面
+      // 儲存目前的 URL，以便登入後可以導回原頁面
       throw redirect({
         to: '/login',
         search: { redirect: location.href },
       })
     }
 
-    // User is logged in → pass their data to all child routes
+    // 使用者已登入 → 將使用者資料傳遞給所有子路由
     return { user }
   },
 })
 ```
 
-Let's break this down:
+讓我們逐步拆解：
 
-1. **`beforeLoad`** runs before the route component renders. This is where you check authentication.
-2. **`getCurrentUserFn()`** calls your server function to check the session.
-3. **`throw redirect(...)`** sends the user to `/login` if they're not authenticated. The `search: { redirect: location.href }` saves where they were trying to go, so you can redirect them back after login.
-4. **`return { user }`** makes the user data available to all child routes via `Route.useRouteContext()`.
+1. **`beforeLoad`** 會在路由元件渲染之前執行。這裡就是檢查驗證狀態的地方。
+2. **`getCurrentUserFn()`** 呼叫你的伺服器函式來檢查 session。
+3. **`throw redirect(...)`** 會在使用者未驗證時將其導向 `/login`。`search: { redirect: location.href }` 會儲存使用者原本要前往的位置，以便登入後能導回。
+4. **`return { user }`** 讓使用者資料可以透過 `Route.useRouteContext()` 在所有子路由中取得。
 
-### Accessing User Data in Protected Routes
+### 在受保護的路由中存取使用者資料
 
-Child routes can access the user data that `_authed.tsx` provides:
+子路由可以存取 `_authed.tsx` 提供的使用者資料：
 
 ```tsx
-// routes/_authed/dashboard.tsx — A protected route
+// routes/_authed/dashboard.tsx — 一個受保護的路由
 import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_authed/dashboard')({
@@ -79,23 +79,23 @@ export const Route = createFileRoute('/_authed/dashboard')({
 })
 
 function DashboardComponent() {
-  // Get the user from the parent layout's context
+  // 從父層 layout 的 context 取得使用者資料
   const { user } = Route.useRouteContext()
 
   return (
     <div>
       <h1>Welcome, {user.email}!</h1>
-      {/* Dashboard content */}
+      {/* 儀表板內容 */}
     </div>
   )
 }
 ```
 
-No need to call `getCurrentUserFn()` again — the parent layout already did it.
+不需要再呼叫一次 `getCurrentUserFn()`——父層 layout 已經處理好了。
 
-## Role-Based Route Protection
+## 基於角色的路由保護
 
-You can extend the pattern to check roles:
+你可以擴展此模式來檢查角色：
 
 ```tsx
 // routes/_authed/admin/index.tsx
@@ -103,7 +103,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_authed/admin/')({
   beforeLoad: async ({ context }) => {
-    // context.user comes from the parent _authed layout
+    // context.user 來自父層的 _authed layout
     if (context.user.role !== 'admin') {
       throw redirect({ to: '/unauthorized' })
     }
@@ -116,13 +116,13 @@ function AdminPage() {
 }
 ```
 
-This creates a **two-level check**:
-1. `_authed.tsx` checks if the user is logged in
-2. `admin/index.tsx` checks if the user is an admin
+這建立了一個**兩層式檢查**：
+1. `_authed.tsx` 檢查使用者是否已登入
+2. `admin/index.tsx` 檢查使用者是否為管理員
 
-## Redirect After Login
+## 登入後導回原頁面
 
-Remember the `search: { redirect: location.href }` we saved earlier? Here's how to use it in your login page:
+還記得我們先前儲存的 `search: { redirect: location.href }` 嗎？以下是如何在登入頁面中使用它：
 
 ```tsx
 // routes/login.tsx
@@ -138,27 +138,27 @@ function LoginPage() {
 
   const handleLogin = async (data) => {
     await loginFn({ data })
-    // After successful login, go back to where they were trying to go
+    // 登入成功後，導回使用者原本要前往的頁面
     navigate({ to: redirectUrl || '/dashboard' })
   }
 
   return (
     <form onSubmit={handleLogin}>
-      {/* Login form fields */}
+      {/* 登入表單欄位 */}
     </form>
   )
 }
 ```
 
-## Key Takeaways
+## 重點整理
 
-- Use **layout routes** (`_authed.tsx`) to protect entire groups of pages at once
-- `beforeLoad` runs before rendering — prevents unauthorized content from flashing
-- `throw redirect(...)` sends unauthenticated users to the login page
-- Pass user data to child routes via `return { user }` in `beforeLoad`
-- Save the original URL in `search` params so you can redirect back after login
-- For role-based protection, add additional `beforeLoad` checks in child routes
+- 使用 **layout route**（`_authed.tsx`）來一次保護一整組頁面
+- `beforeLoad` 在渲染之前執行——防止未授權內容的閃爍畫面
+- `throw redirect(...)` 將未驗證的使用者導向登入頁面
+- 在 `beforeLoad` 中透過 `return { user }` 將使用者資料傳遞給子路由
+- 將原始 URL 儲存在 `search` 參數中，以便登入後能導回原頁面
+- 若需要基於角色的保護，可在子路由中加入額外的 `beforeLoad` 檢查
 
 ---
 
-Next: [Implementation Patterns](./07-implementation-patterns.md)
+下一篇：[Implementation Patterns](./07-implementation-patterns.md)
